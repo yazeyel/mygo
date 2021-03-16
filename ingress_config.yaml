@@ -1,0 +1,97 @@
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "4"
+    kubectl.kubernetes.io/last-applied-configuration:
+  creationTimestamp: "2021-02-28T18:27:17Z"
+  generation: 4
+  labels:
+    microk8s-application: nginx-ingress-microk8s
+  name: nginx-ingress-microk8s-controller
+  namespace: ingress
+  resourceVersion: "9279319"
+  selfLink: /apis/apps/v1/namespaces/ingress/daemonsets/nginx-ingress-microk8s-controller
+  uid: 7efc6427-d948-485a-9a49-f7eb904b02a4
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: nginx-ingress-microk8s
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: nginx-ingress-microk8s
+    spec:
+      containers:
+        - args:
+            - /nginx-ingress-controller
+            - --configmap=$(POD_NAMESPACE)/nginx-load-balancer-microk8s-conf
+            - --tcp-services-configmap=$(POD_NAMESPACE)/nginx-ingress-tcp-microk8s-conf
+            - --udp-services-configmap=$(POD_NAMESPACE)/nginx-ingress-udp-microk8s-conf
+            - " "
+            - --publish-status-address=127.0.0.1
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.33.0
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          name: nginx-ingress-microk8s
+          ports:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
+            - containerPort: 443
+              hostPort: 443
+              protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      nodeSelector:
+        onlytype: loadbalancer
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: nginx-ingress-microk8s-serviceaccount
+      terminationGracePeriodSeconds: 60
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          value: loadbalancer
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+status:
+  currentNumberScheduled: 1
+  desiredNumberScheduled: 1
+  numberAvailable: 1
+  numberMisscheduled: 0
+  numberReady: 1
+  observedGeneration: 4
+  updatedNumberScheduled: 1
